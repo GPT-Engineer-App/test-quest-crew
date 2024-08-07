@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Facebook, Twitter, Instagram, Github, ChevronLeft, ChevronRight } from "lucide-react";
+import { Facebook, Twitter, Instagram, Github, ChevronLeft, ChevronRight, Paw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 
 const catFacts = [
   "Cats sleep for about 70% of their lives.",
@@ -27,21 +28,28 @@ const catBreeds = [
   { name: "Sphynx", image: "https://upload.wikimedia.org/wikipedia/commons/e/e8/Sphinx2_July_2006.jpg" },
 ];
 
+const fetchCatFact = async () => {
+  const response = await fetch("https://catfact.ninja/fact");
+  const data = await response.json();
+  return data.fact;
+};
+
 const Index = () => {
-  const [catFact, setCatFact] = useState("");
   const [currentBreedIndex, setCurrentBreedIndex] = useState(0);
   const [scrollY, setScrollY] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+
+  const { data: catFact, refetch: generateCatFact } = useQuery({
+    queryKey: ["catFact"],
+    queryFn: fetchCatFact,
+    enabled: false,
+  });
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const generateCatFact = () => {
-    const randomFact = catFacts[Math.floor(Math.random() * catFacts.length)];
-    setCatFact(randomFact);
-  };
 
   const nextBreed = () => {
     setCurrentBreedIndex((prevIndex) => (prevIndex + 1) % catBreeds.length);
@@ -51,19 +59,40 @@ const Index = () => {
     setCurrentBreedIndex((prevIndex) => (prevIndex - 1 + catBreeds.length) % catBreeds.length);
   };
 
+  const handleHover = () => {
+    setIsHovering(true);
+  };
+
+  const handleHoverEnd = () => {
+    setIsHovering(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="bg-gray-800 text-white p-4 fixed w-full z-10">
+      <motion.nav
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 100 }}
+        className="bg-gray-800 text-white p-4 fixed w-full z-10"
+      >
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">CatWorld</h1>
+          <motion.h1
+            className="text-2xl font-bold flex items-center"
+            whileHover={{ scale: 1.1 }}
+          >
+            <Paw className="mr-2" /> CatWorld
+          </motion.h1>
           <ul className="flex space-x-4">
-            <li><a href="#" className="hover:text-gray-300 transition-colors">Home</a></li>
-            <li><a href="#" className="hover:text-gray-300 transition-colors">About</a></li>
-            <li><a href="#" className="hover:text-gray-300 transition-colors">Gallery</a></li>
-            <li><a href="#" className="hover:text-gray-300 transition-colors">Contact</a></li>
+            {["Home", "About", "Gallery", "Contact"].map((item) => (
+              <motion.li key={item} whileHover={{ scale: 1.1 }}>
+                <a href="#" className="hover:text-gray-300 transition-colors">
+                  {item}
+                </a>
+              </motion.li>
+            ))}
           </ul>
         </div>
-      </nav>
+      </motion.nav>
 
       <div className="flex-grow pt-16">
         <div className="relative h-screen overflow-hidden">
@@ -75,7 +104,12 @@ const Index = () => {
             }}
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-white bg-black bg-opacity-50 p-8 rounded-lg">
+            <motion.div
+              className="text-center text-white bg-black bg-opacity-50 p-8 rounded-lg"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+            >
               <motion.h1
                 initial={{ opacity: 0, y: -50 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -92,7 +126,26 @@ const Index = () => {
               >
                 Discover the fascinating world of our feline friends
               </motion.p>
-            </div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+              >
+                <Button
+                  className="mt-6"
+                  onMouseEnter={handleHover}
+                  onMouseLeave={handleHoverEnd}
+                >
+                  <motion.span
+                    animate={{ rotate: isHovering ? 360 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Paw className="mr-2" />
+                  </motion.span>
+                  Explore Now
+                </Button>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
 
@@ -163,10 +216,10 @@ const Index = () => {
                 <CardDescription>Learn interesting facts about cats!</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={generateCatFact}>Generate Cat Fact</Button>
+                <Button onClick={() => generateCatFact()}>Generate Cat Fact</Button>
                 <AnimatePresence mode="wait">
                   {catFact && (
-                    <motion.p
+                    <motion.div
                       key={catFact}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -174,8 +227,20 @@ const Index = () => {
                       transition={{ duration: 0.3 }}
                       className="mt-4 p-4 bg-gray-100 rounded-lg"
                     >
-                      {catFact}
-                    </motion.p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        {catFact}
+                      </motion.p>
+                      <motion.div
+                        className="w-full h-1 bg-blue-500 mt-2"
+                        initial={{ width: 0 }}
+                        animate={{ width: "100%" }}
+                        transition={{ duration: 5 }}
+                      />
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </CardContent>
